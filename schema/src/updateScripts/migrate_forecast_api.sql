@@ -15,6 +15,52 @@ begin
    end if;
 end;
 /
+-- export tables
+declare
+   l_dp_handle number;
+   l_job_state   varchar2(30);
+begin
+   l_dp_handle := dbms_datapump.open(
+         operation => 'EXPORT',
+         job_mode => 'TABLE',
+         remote_link => null,
+         job_name => null,
+         version => 'LATEST'
+      );
+
+   dbms_datapump.add_file(
+      handle => l_dp_handle,
+      filename => 'FORECAST_DATA.dmp',
+      directory => 'FORECAST_EXPORT',
+      filetype => dbms_datapump.ku$_file_type_dump_file,
+      reusefile => 1
+   );
+
+   dbms_datapump.add_file(
+      handle => l_dp_handle,
+      filename => 'export_FORECAST.log',
+      directory => 'FORECAST_EXPORT',
+      filetype => dbms_datapump.ku$_file_type_log_file,
+      reusefile => 1
+   );
+
+   dbms_datapump.METADATA_FILTER(
+      handle => l_dp_handle,
+      name => 'SCHEMA_EXPR',
+      value => '= ''CWMS_20'''
+   );
+
+   dbms_datapump.METADATA_FILTER(
+      handle => l_dp_handle,
+      name => 'NAME_EXPR',
+      value => 'IN (''AT_FORECAST_SPEC'', ''AT_FORECAST_TS'', ''AT_FORECAST_TEXT'')'
+   );
+
+   dbms_datapump.START_JOB(l_dp_handle);
+
+   dbms_datapump.wait_for_job(l_dp_handle, l_job_state);
+end;
+/
 declare
    l_sort_order_support number;
    l_new_spec at_fcst_spec%rowtype;
